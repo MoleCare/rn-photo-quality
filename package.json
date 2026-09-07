@@ -1,0 +1,58 @@
+{
+  "name": "@molecare/photo-quality",
+  "version": "0.1.0",
+  "description": "Local photo quality metrics (clipping, evenness, sharpness) and capture provenance for React Native.",
+  "main": "src/index.js",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MoleCare/rn-photo-quality.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MoleCare/rn-photo-quality/issues"
+  },
+  "homepage": "https://github.com/MoleCare/rn-photo-quality#readme",
+  "keywords": [
+    "react-native",
+    "image-quality",
+    "capture-metadata",
+    "photo-comparability",
+    "healthcare"
+  ],
+  "peerDependencies": {
+    "react-native": ">=0.70.0",
+    "react-native-fs": ">=2.18.0",
+    "@react-native-community/image-editor": ">=2.3.0",
+    "jpeg-js": ">=0.4.4",
+    "react-native-device-info": ">=10.0.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "@babel/preset-env": "^7.24.0",
+    "babel-jest": "^29.7.0",
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "setupFiles": ["<rootDir>/jest.setup.js"],
+    "transform": {
+      "^.+\\.js$": "babel-jest"
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(react-native|@react-native)/)"
+    ]
+  },
+  "scripts": {
+    "test": "jest",
+    "lint": "echo \"no lint configured yet\""
+  },
+  "files": [
+    "src",
+    "LICENSE",
+    "README.md",
+    "SECURITY.md"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  }
+}
