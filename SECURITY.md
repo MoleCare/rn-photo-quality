@@ -1,17 +1,38 @@
 # Security Policy
 
-## Supported versions
-
-Security fixes are applied to the latest release on `main`.
-
 ## Reporting a vulnerability
 
-Email **security@molecare.co.uk** (or open a private GitHub Security Advisory on this repo).
+**Please do not open a public GitHub issue for security problems.**
 
-Do **not** open public issues for vulnerabilities.
+Email **info@molecare.co.uk**, or open a private
+[security advisory](https://github.com/MoleCare/rn-photo-quality/security/advisories/new)
+on this repository, with:
 
-## Publishing rules for this org
+- what the issue is and where in the code it lives
+- how to reproduce it
+- what an attacker could do with it
 
-- Never commit API keys, tokens, JWTs, `.env`, Firebase plists, Mapbox secrets, or patient/clinical images.
-- Prefer injectable config over hardcoded product IDs or backend hosts.
-- This repository is **private** until an explicit public-release checklist is completed.
+You should get an acknowledgement within **3 working days**. We will tell you
+when a fix is released and credit you in the release notes, unless you would
+rather we did not.
+
+## Supported versions
+
+Security fixes go into the latest release.
+
+## Scope
+
+In scope:
+
+- this package's code: file handling of the temporary copies it writes,
+  decoding untrusted image data, anything it exposes to the host app
+- dependency vulnerabilities that are reachable from this code
+
+Out of scope here (but still worth telling us about at the same address): the
+MoleCare apps and API.
+
+## Data safety
+
+The package reads photos the host app gives it and never sends anything over the
+network. Never include a real photo of a person, or any health data, in a bug
+report.

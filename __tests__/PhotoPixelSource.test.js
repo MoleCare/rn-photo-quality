@@ -74,3 +74,73 @@ describe('decode', () => {
     await expect(PhotoPixelSource.decode(123)).resolves.toBeNull();
   });
 });
+
+describe('decode with each image-editor version', () => {
+  const ImageEditor = require('@react-native-community/image-editor');
+  const RNFS = require('react-native-fs');
+  const jpeg = require('jpeg-js');
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest
+      .spyOn(PhotoPixelSource, '_imageSize')
+      .mockResolvedValue({width: 1000, height: 1000});
+    RNFS.readFile.mockResolvedValue(Buffer.from([1, 2, 3, 4]).toString('base64'));
+    jest
+      .spyOn(jpeg, 'decode')
+      .mockReturnValue({data: new Uint8Array(4), width: 1, height: 1});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('reads the resized file from a 2.x string result', async () => {
+    ImageEditor.cropImage.mockResolvedValue('file:///tmp/resized.jpg');
+
+    const pixels = await PhotoPixelSource.decode('AAAA');
+
+    expect(pixels).toEqual({data: new Uint8Array(4), width: 1, height: 1});
+    expect(RNFS.readFile).toHaveBeenCalledWith('/tmp/resized.jpg', 'base64');
+  });
+
+  it('reads the resized file from a 4.x object result', async () => {
+    // 4.x resolves {uri, path, ...}; calling .replace on it used to throw, and
+    // every photo was reported as "not measured".
+    ImageEditor.cropImage.mockResolvedValue({
+      uri: 'file:///tmp/resized4.jpg',
+      path: '/tmp/resized4.jpg',
+      width: 256,
+      height: 256,
+    });
+
+    const pixels = await PhotoPixelSource.decode('AAAA');
+
+    expect(pixels).not.toBeNull();
+    expect(RNFS.readFile).toHaveBeenCalledWith('/tmp/resized4.jpg', 'base64');
+  });
+
+  it('deletes both temporary files before returning', async () => {
+    ImageEditor.cropImage.mockResolvedValue('file:///tmp/resized.jpg');
+
+    await PhotoPixelSource.decode('AAAA');
+
+    const deleted = RNFS.unlink.mock.calls.map(([path]) => path);
+    expect(deleted).toContain('/tmp/resized.jpg');
+    expect(deleted.some(path => path.startsWith('/tmp/qa_src_'))).toBe(true);
+  });
+
+  it('gives photos analysed in the same millisecond their own temp files', async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(1757750000000);
+    ImageEditor.cropImage.mockResolvedValue('file:///tmp/resized.jpg');
+
+    await Promise.all([
+      PhotoPixelSource.decode('AAAA'),
+      PhotoPixelSource.decode('AAAA'),
+    ]);
+
+    const written = RNFS.writeFile.mock.calls.map(([path]) => path);
+    expect(written).toHaveLength(2);
+    expect(written[0]).not.toBe(written[1]);
+  });
+});

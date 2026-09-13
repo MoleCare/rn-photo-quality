@@ -1,7 +1,7 @@
 {
   "name": "@molecare/photo-quality",
   "version": "0.1.0",
-  "description": "Local photo quality metrics (clipping, evenness, sharpness) and capture provenance for React Native.",
+  "description": "On-device photo quality checks for React Native: exposure clipping, uneven lighting, sharpness, capture metadata and photo-to-photo comparability.",
   "main": "src/index.js",
   "license": "Apache-2.0",
   "repository": {
@@ -14,16 +14,20 @@
   "homepage": "https://github.com/MoleCare/rn-photo-quality#readme",
   "keywords": [
     "react-native",
+    "photo",
+    "camera",
     "image-quality",
-    "capture-metadata",
-    "photo-comparability",
-    "healthcare"
+    "sharpness",
+    "exposure",
+    "capture-metadata"
   ],
+  "dependencies": {
+    "jpeg-js": "^0.4.4"
+  },
   "peerDependencies": {
     "react-native": ">=0.70.0",
     "react-native-fs": ">=2.18.0",
     "@react-native-community/image-editor": ">=2.3.0",
-    "jpeg-js": ">=0.4.4",
     "react-native-device-info": ">=10.0.0"
   },
   "devDependencies": {
@@ -43,8 +47,7 @@
     ]
   },
   "scripts": {
-    "test": "jest",
-    "lint": "echo \"no lint configured yet\""
+    "test": "jest"
   },
   "files": [
     "src",
@@ -53,6 +56,6 @@
     "SECURITY.md"
   ],
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   }
 }
