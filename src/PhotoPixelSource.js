@@ -1,7 +1,7 @@
 import {Platform} from 'react-native';
 import ImageEditor from '@react-native-community/image-editor';
 import jpeg from 'jpeg-js';
-import ImageQualityMetrics from './ImageQualityMetrics';
+import {resolveOptions} from './defaults';
 
 const RNFS = require('react-native-fs');
 
@@ -23,15 +23,16 @@ export default class PhotoPixelSource {
    * "could not measure".
    *
    * @param {string} base64 - JPEG data, with or without a data: prefix
+   * @param {{analysisSize?: number}} [options]
    * @returns {Promise<{data: Uint8Array, width: number, height: number}|null>}
    */
-  static async decode(base64) {
+  static async decode(base64, options) {
+    const size = resolveOptions(options).analysisSize;
     if (!base64 || typeof base64 !== 'string') {
       return null;
     }
 
     const clean = base64.includes(',') ? base64.split(',')[1] : base64;
-    const size = ImageQualityMetrics.ANALYSIS_SIZE;
 
     // Random suffix: two photos analysed in the same millisecond must not
     // share (and delete) each other's temp file.

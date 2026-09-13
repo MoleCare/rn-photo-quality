@@ -1,12 +1,25 @@
 import {Platform} from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 
+const DEVICE_FIELDS = Object.freeze([
+  'platform',
+  'osVersion',
+  'model',
+  'appVersion',
+  'appBuild',
+  'isEmulator',
+]);
+
 /**
  * Provenance for a stored photo.
  *
  * Resolution caps, JPEG quality, device and capture source all change the
  * pixels, and none of it can be recovered from the stored image afterwards.
  * Recorded at capture time, alongside the photo, or it is lost.
+ *
+ * Stateless: the record is built from what the caller passes. Device details
+ * and the capture time can be supplied by the app; only when they are not does
+ * it read them (react-native-device-info and the clock).
  */
 export default class CaptureMetadata {
   /**
@@ -15,22 +28,25 @@ export default class CaptureMetadata {
   static VERSION = 1;
 
   /** Where a photo came from. Library photos carry far weaker guarantees. */
-  static SOURCE = {
+  static SOURCE = Object.freeze({
     CAMERA: 'camera',
     LIBRARY: 'library',
-  };
+  });
 
   /**
    * Fields the current capture stack cannot provide. Named rather than omitted.
    */
-  static UNAVAILABLE_FIELDS = [
+  static UNAVAILABLE_FIELDS = Object.freeze([
     'iso',
     'exposureTime',
     'focalLength',
     'colourTemperature',
     'torch',
     'lens',
-  ];
+  ]);
+
+  /** The device fields a record holds; anything else passed in is dropped. */
+  static DEVICE_FIELDS = DEVICE_FIELDS;
 
   /**
    * Build the record to store beside an image.
@@ -42,13 +58,16 @@ export default class CaptureMetadata {
    * @param {Object} context
    * @param {string} context.source - one of CaptureMetadata.SOURCE
    * @param {Object} [context.pickerOptions]
+   * @param {Object|null} [context.device] - device details from your app, keyed
+   *   by DEVICE_FIELDS. `null` records none. Omitted: read with readDevice().
+   * @param {Date|string|number} [context.capturedAt] - defaults to now
    * @returns {Object} metadata record
    */
   static build(asset, context = {}) {
     const record = {
       v: CaptureMetadata.VERSION,
-      capturedAt: new Date().toISOString(),
-      source: context.source || null,
+      capturedAt: CaptureMetadata._isoTime(context && context.capturedAt),
+      source: (context && context.source) || null,
       partial: false,
       unavailable: [...CaptureMetadata.UNAVAILABLE_FIELDS],
     };
@@ -82,7 +101,10 @@ export default class CaptureMetadata {
         ),
       };
 
-      record.device = CaptureMetadata._device();
+      record.device =
+        context.device === undefined
+          ? CaptureMetadata.readDevice()
+          : CaptureMetadata._pickDevice(context.device);
       record.deviceIsCaptureDevice = source === CaptureMetadata.SOURCE.CAMERA;
     } catch (error) {
       record.partial = true;
@@ -93,7 +115,11 @@ export default class CaptureMetadata {
     return record;
   }
 
-  static _device() {
+  /**
+   * Device details as build() records them, read from the platform and
+   * react-native-device-info. Call it yourself to pass (or edit) the result.
+   */
+  static readDevice() {
     const device = {
       platform: Platform.OS || null,
       osVersion: String(Platform.Version || '') || null,
@@ -125,6 +151,25 @@ export default class CaptureMetadata {
     }
 
     return device;
+  }
+
+  static _pickDevice(given) {
+    const device = {};
+    for (const field of DEVICE_FIELDS) {
+      const value = given && typeof given === 'object' ? given[field] : undefined;
+      device[field] = value === undefined ? null : value;
+    }
+    return device;
+  }
+
+  static _isoTime(value) {
+    if (value !== undefined && value !== null) {
+      const time = new Date(value);
+      if (!Number.isNaN(time.getTime())) {
+        return time.toISOString();
+      }
+    }
+    return new Date().toISOString();
   }
 
   static isPresent(metadata) {

@@ -1,4 +1,4 @@
-export {configure, getConfig, resetConfig} from './config';
+export {DEFAULT_OPTIONS} from './defaults';
 export {default as ImageQualityAnalyzer} from './ImageQualityAnalyzer';
 export {default as ImageQualityMetrics} from './ImageQualityMetrics';
 export {default as PhotoPixelSource} from './PhotoPixelSource';
