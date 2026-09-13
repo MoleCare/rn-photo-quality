@@ -33,7 +33,10 @@ export default class PhotoPixelSource {
     const clean = base64.includes(',') ? base64.split(',')[1] : base64;
     const size = ImageQualityMetrics.ANALYSIS_SIZE;
 
-    const sourcePath = `${RNFS.CachesDirectoryPath}/qa_src_${Date.now()}.jpg`;
+    // Random suffix: two photos analysed in the same millisecond must not
+    // share (and delete) each other's temp file.
+    const suffix = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    const sourcePath = `${RNFS.CachesDirectoryPath}/qa_src_${suffix}.jpg`;
     let resizedPath = null;
 
     try {
@@ -47,11 +50,19 @@ export default class PhotoPixelSource {
       }
 
       // Square on purpose: every analysis image must have the same pixel count.
-      const croppedUri = await ImageEditor.cropImage(uri, {
+      const cropped = await ImageEditor.cropImage(uri, {
         offset: {x: 0, y: 0},
         size: {width, height},
         displaySize: {width: size, height: size},
       });
+
+      // image-editor 2.x resolves a URI string; 3.x and 4.x resolve
+      // {uri, path, width, height, ...}.
+      const croppedUri =
+        typeof cropped === 'string' ? cropped : cropped && cropped.uri;
+      if (!croppedUri) {
+        return null;
+      }
 
       resizedPath = croppedUri.replace('file://', '');
       const resizedBase64 = await RNFS.readFile(resizedPath, 'base64');
@@ -74,9 +85,10 @@ export default class PhotoPixelSource {
       console.warn('PhotoPixelSource: could not decode:', error?.message);
       return null;
     } finally {
-      RNFS.unlink(sourcePath).catch(() => {});
+      // Awaited, so the copies of the photo are gone before the caller moves on.
+      await RNFS.unlink(sourcePath).catch(() => {});
       if (resizedPath) {
-        RNFS.unlink(resizedPath).catch(() => {});
+        await RNFS.unlink(resizedPath).catch(() => {});
       }
     }
   }

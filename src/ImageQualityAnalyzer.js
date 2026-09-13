@@ -3,7 +3,8 @@ import ImageQualityMetrics from './ImageQualityMetrics';
 import {getConfig} from './config';
 
 /**
- * Capture quality checks for clinical / lesion photos.
+ * Capture quality checks for close-up photos that will be compared over time.
+ * It measures the photo, never what the photo shows.
  *
  * Cheap checks on the payload (resolution, file size), then — when the image
  * can be decoded — pixel measurements: exposure clipping, illumination
