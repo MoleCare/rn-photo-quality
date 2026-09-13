@@ -1,9 +1,9 @@
 {
   "name": "@molecare/photo-quality",
-  "version": "0.2.0",
-  "description": "On-device photo quality checks for React Native: exposure clipping, uneven lighting, sharpness, capture metadata and photo-to-photo comparability.",
-  "main": "src/index.js",
+  "version": "1.0.0",
+  "description": "On-device photo quality checks for React Native and Expo: exposure clipping, uneven lighting, sharpness, capture provenance and photo-to-photo comparability. TypeScript, no native code of its own.",
   "license": "Apache-2.0",
+  "author": "MoleCare LTD <info@molecare.co.uk> (https://www.molecare.co.uk)",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MoleCare/rn-photo-quality.git"
@@ -14,49 +14,126 @@
   "homepage": "https://github.com/MoleCare/rn-photo-quality#readme",
   "keywords": [
     "react-native",
+    "expo",
     "photo",
     "camera",
     "image-quality",
     "sharpness",
     "exposure",
-    "capture-metadata"
+    "capture-metadata",
+    "typescript"
   ],
-  "dependencies": {
-    "jpeg-js": "^0.4.4"
-  },
-  "peerDependencies": {
-    "react-native": ">=0.70.0",
-    "react-native-fs": ">=2.18.0",
-    "@react-native-community/image-editor": ">=2.3.0",
-    "react-native-device-info": ">=10.0.0"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.24.0",
-    "@babel/preset-env": "^7.24.0",
-    "babel-jest": "^29.7.0",
-    "jest": "^29.7.0"
-  },
-  "jest": {
-    "testEnvironment": "node",
-    "setupFiles": [
-      "<rootDir>/jest.setup.js"
-    ],
-    "transform": {
-      "^.+\\.js$": "babel-jest"
+  "type": "module",
+  "sideEffects": false,
+  "main": "./lib/commonjs/index.js",
+  "module": "./lib/module/index.js",
+  "types": "./lib/typescript/commonjs/src/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./lib/typescript/module/src/index.d.ts",
+        "default": "./lib/module/index.js"
+      },
+      "require": {
+        "types": "./lib/typescript/commonjs/src/index.d.ts",
+        "default": "./lib/commonjs/index.js"
+      }
     },
-    "transformIgnorePatterns": [
-      "node_modules/(?!(react-native|@react-native)/)"
-    ]
-  },
-  "scripts": {
-    "test": "jest"
+    "./package.json": "./package.json"
   },
   "files": [
+    "lib",
     "src",
+    "!**/__tests__",
+    "!**/*.tsbuildinfo",
+    "CHANGELOG.md",
     "LICENSE",
     "README.md",
     "SECURITY.md"
   ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "bob build",
+    "clean": "del-cli lib coverage",
+    "prepack": "bob build",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "format": "prettier --check .",
+    "format:write": "prettier --write .",
+    "test": "jest",
+    "check:package": "bob build && publint --strict && attw --pack .",
+    "check:consumer": "bash scripts/check-consumer.sh"
+  },
+  "dependencies": {
+    "jpeg-js": "^0.4.4"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@babel/core": "^7.28.0",
+    "@babel/preset-env": "^7.28.0",
+    "@babel/preset-typescript": "^7.27.0",
+    "@eslint/js": "^10.0.1",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.0.0",
+    "babel-jest": "^30.5.1",
+    "del-cli": "^7.0.0",
+    "eslint": "^10.10.0",
+    "eslint-config-prettier": "^10.1.8",
+    "jest": "^30.5.1",
+    "prettier": "^3.9.6",
+    "publint": "^0.3.24",
+    "react-native-builder-bob": "^0.43.1",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.70.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "roots": [
+      "<rootDir>/__tests__"
+    ],
+    "collectCoverageFrom": [
+      "<rootDir>/src/**/*.ts",
+      "!<rootDir>/src/index.ts"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 100,
+        "functions": 100,
+        "lines": 100,
+        "statements": 100
+      }
+    }
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      [
+        "commonjs",
+        {
+          "esm": true
+        }
+      ],
+      [
+        "module",
+        {
+          "esm": true
+        }
+      ],
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
+    ]
+  },
+  "prettier": {
+    "singleQuote": true,
+    "trailingComma": "es5"
+  },
   "publishConfig": {
     "access": "public"
   }
