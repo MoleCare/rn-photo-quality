@@ -1,10 +1,12 @@
 # @molecare/photo-quality
 
-On-device photo quality checks for React Native. Before a photo is kept, tell
-the person if it is too dark, washed out, unevenly lit or blurry, record how it
-was taken, and grade whether two photos were taken in comparable conditions.
+On-device photo quality checks for React Native and Expo. Before a photo is
+kept, tell the person if it is too dark, washed out or unevenly lit, record how
+it was taken, and grade whether two photos were taken in comparable
+conditions.
 
-Everything runs on the device. No network, no uploads, no telemetry.
+Everything runs on the device. No network, no uploads, no telemetry, no state.
+TypeScript, with types included, and no native code of its own.
 
 > **Not a medical device.** This package measures photos, never what they
 > show. It makes no clinical claim, and its thresholds have not been clinically
@@ -16,89 +18,227 @@ to keep consistent.
 
 ## Install
 
+Use your project's package manager; they all install from the npm registry.
+
 ```bash
-npm install @molecare/photo-quality react-native-fs @react-native-community/image-editor react-native-device-info
+npm install @molecare/photo-quality
+yarn add @molecare/photo-quality
+pnpm add @molecare/photo-quality
+bun add @molecare/photo-quality
+npx expo install @molecare/photo-quality
 ```
 
-Works with `@react-native-community/image-editor` 2.x, 3.x and 4.x.
+The package imports no native module. To measure pixels, it needs a way to
+turn a photo into a small JPEG. You pass that in (see below), using the image
+and file libraries your app already has.
 
-## What it gives you
+### Works with
 
-| | |
-|---|---|
-| `ImageQualityAnalyzer.analyze(asset)` | Resolution and file-size checks, then pixel measurements: exposure clipping, illumination evenness and sharpness. Returns warnings with configurable thresholds and messages. |
-| `ImageQualityMetrics` | The measurements themselves, on decoded RGBA pixels. |
-| `PhotoPixelSource.decode(base64)` | Resamples a JPEG to a fixed analysis size and decodes it. Returns `null` when a photo cannot be measured, so "could not measure" is never mistaken for "bad photo". |
-| `CaptureMetadata` | A provenance record for a capture: image size, picker settings, platform, OS version, device model, app version. |
-| `PhotoComparability` | Grades whether two photos were taken in comparable conditions. |
+|                  |                                                                                     |
+| ---------------- | ----------------------------------------------------------------------------------- |
+| React Native     | Metro, with or without package `exports`; any image and file library                |
+| Expo             | `expo-image-manipulator` or any other resizer, passed in as a loader                |
+| Package managers | npm, Yarn 1, Yarn 4 (Plug'n'Play and `node_modules`), pnpm, Bun, each checked in CI |
+| Node             | `require` and `import`                                                              |
+| Jest             | default settings; no mocks needed                                                   |
+| TypeScript       | `moduleResolution` `bundler`, `node16` and `nodenext`                               |
 
-## Use
+## Check a photo
 
-```js
-import {ImageQualityAnalyzer} from '@molecare/photo-quality';
+### Bare React Native
 
-const result = await ImageQualityAnalyzer.analyze(pickerAsset);
-// result: {ok, warningTypes, warnings, critical, measured, metrics}
-if (!result.ok) {
-  // warningTypes are stable codes ('too_dark', 'small_file', ...) to map to
-  // your own text; warnings is the built-in English for the same list.
+With `@react-native-community/image-editor` (2.x, 3.x or 4.x) and
+`react-native-fs` (or `@dr.pogodin/react-native-fs`):
+
+```ts
+import { Image, Platform } from 'react-native';
+import ImageEditor from '@react-native-community/image-editor';
+import RNFS from 'react-native-fs';
+import {
+  createPhotoAnalyzer,
+  imageEditorJpegLoader,
+} from '@molecare/photo-quality';
+
+const analyzer = createPhotoAnalyzer({
+  loadAnalysisJpeg: imageEditorJpegLoader({
+    imageEditor: ImageEditor,
+    fileSystem: RNFS,
+    getImageSize: (uri) =>
+      new Promise((resolve, reject) =>
+        Image.getSize(
+          uri,
+          (width, height) => resolve({ width, height }),
+          reject
+        )
+      ),
+    platform: Platform.OS,
+  }),
+});
+
+// One asset from react-native-image-picker (or any picker).
+const report = await analyzer.analyze({
+  uri: asset.uri,
+  width: asset.width,
+  height: asset.height,
+  fileSize: asset.fileSize,
+});
+```
+
+Pass `uri` when you have it: the photo is resized where it is, and only the
+small analysis image is read into JavaScript. `base64` also works; it is
+written to a temporary file first. Every temporary file is deleted before
+`analyze` returns.
+
+### Expo
+
+Any function that returns a base64 JPEG of the photo resampled to `size` ×
+`size` works as a loader, for example with `expo-image-manipulator`:
+
+```ts
+const analyzer = createPhotoAnalyzer({
+  loadAnalysisJpeg: async (photo, size) => {
+    const result = await manipulateAsync(
+      photo.uri,
+      [{ resize: { width: size, height: size } }],
+      { base64: true, format: SaveFormat.JPEG }
+    );
+    return result.base64 ?? '';
+  },
+});
+```
+
+### The report
+
+```ts
+const report = await analyzer.analyze(photo);
+// {ok, warningTypes, warnings, critical, measured, measurementFailure, metrics}
+
+if (!report.ok) {
+  // warningTypes are stable codes to map to your own text:
+  // 'no_image_data', 'low_resolution', 'small_file', 'too_dark', 'too_bright', 'uneven_lighting'.
+  // warnings is the text for the same list (yours from `messages`, or English).
 }
-if (!result.measured) {
+if (report.critical) {
+  // No photo, or both too few pixels and too small a file: not usable.
+}
+if (!report.measured) {
+  // report.measurementFailure.reason: 'no_loader', 'load_failed' (with cause) or 'decode_failed'.
   // The pixels could not be read. That is not a bad photo.
 }
 ```
 
-Sharpness is measured and reported, but not used as a warning by default: its
-scale depends on the camera and needs a real capture set to calibrate.
+`analyze` only rejects for a programming error (a photo that is not an
+object). A photo that cannot be measured is a result, never an exception.
+
+Sharpness is measured and reported in `metrics`, but not used as a warning:
+its scale depends on the camera and needs a real capture set to calibrate.
+
+Measuring decodes the analysis image in JavaScript. At the default 512 × 512
+that is tens of milliseconds even on a fast engine, and slower under Hermes, so
+show a short "checking" state while it runs, or lower `analysisSize`. Scores
+measured at different sizes are not comparable.
+
+## Record how a photo was taken
+
+Store the record next to the photo. It is what makes a later comparison
+possible, and it cannot be recovered afterwards.
+
+```ts
+import DeviceInfo from 'react-native-device-info';
+import { Platform } from 'react-native';
+import { CAPTURE_SOURCE, buildCaptureMetadata } from '@molecare/photo-quality';
+
+const capture = buildCaptureMetadata(asset, {
+  source: CAPTURE_SOURCE.CAMERA, // or LIBRARY
+  pickerOptions: { maxWidth: 2048, maxHeight: 2048, quality: 0.85 },
+  device: {
+    platform: Platform.OS,
+    osVersion: String(Platform.Version),
+    model: DeviceInfo.getModel(),
+    appVersion: DeviceInfo.getVersion(),
+    appBuild: DeviceInfo.getBuildNumber(),
+  },
+});
+capture.quality = { measured: report.measured, ...report.metrics }; // in your stored copy
+```
+
+`buildCaptureMetadata` never throws and reads nothing from the device itself.
+Leave `device` out to record no device details at all. Records carry
+`v: 1`; `isCaptureMetadata(value)` tells a record from a photo stored before
+you recorded one.
+
+## Compare two photos
+
+```ts
+import {
+  assessComparability,
+  explainComparabilityReason,
+  summariseComparability,
+} from '@molecare/photo-quality';
+
+const result = assessComparability(photoA.capture, photoB.capture);
+// {level: 'good' | 'fair' | 'poor' | 'unknown', reasons, comparable}
+
+summariseComparability(result.level);
+result.reasons.map((reason) => explainComparabilityReason(reason));
+```
+
+Different devices, different picker settings, or a photo from the library
+make a comparison `poor`. A large exposure difference, uneven lighting or an
+unmeasured photo make it `fair`. A missing record makes it `unknown`. The text
+never says whether the subject changed.
 
 ## No state, no global settings
 
-Nothing is kept between calls and there is no global configuration, so two
-parts of an app can use different settings without affecting each other.
-Settings go with the call, over the defaults in `DEFAULT_OPTIONS`:
+Nothing is kept between calls and there is no global configuration. Settings
+belong to the analyzer you create, or go with the call:
 
-```js
-import {ImageQualityAnalyzer, PhotoComparability, DEFAULT_OPTIONS} from '@molecare/photo-quality';
+| Threshold                     | Default | Meaning                                                |
+| ----------------------------- | ------- | ------------------------------------------------------ |
+| `minWidth`, `minHeight`       | 300     | Warn below this many pixels                            |
+| `minFileSizeBytes`            | 7500    | Warn below this file size                              |
+| `clippedDarkLimit`            | 0.15    | Warn "too dark" above this fraction of crushed pixels  |
+| `clippedBrightLimit`          | 0.15    | Warn "too bright" above this fraction of blown pixels  |
+| `unevenLimit`                 | 0.25    | Warn "uneven lighting", and flag it in comparisons     |
+| `sharpnessUnreliableClipping` | 0.1     | Sharpness is unreliable above this clipped fraction    |
+| `analysisSize`                | 512     | Pixels square the photo is measured at                 |
+| `darkLevel`, `brightLevel`    | 4, 251  | Luma counted as crushed or blown                       |
+| `exposureDiffLimit`           | 0.25    | Relative mean-luma difference that makes photos differ |
 
-const QUALITY = {
-  ...DEFAULT_OPTIONS,
-  minWidth: 600,
-  messages: {too_dark: t('photo.tooDark')},
-};
-
-await ImageQualityAnalyzer.analyze(pickerAsset, QUALITY);
-PhotoComparability.assess(entryA, entryB, {exposureDiffLimit: 0.3});
-PhotoComparability.explain(reason, {from_library: t('photo.fromLibrary')});
-PhotoComparability.summarise(level, {good: t('photo.good')});
-```
-
-An unknown option, or a value that is not a non-negative number, throws a
-`TypeError` rather than being ignored.
-
-`CaptureMetadata.build` takes the device details and capture time from your
-app when you pass them, and only reads them itself when you don't:
-
-```js
-CaptureMetadata.build(asset, {
-  source: CaptureMetadata.SOURCE.CAMERA,
-  pickerOptions,
-  device: null,          // record no device details at all
-  capturedAt: new Date(), // or your own clock
+```ts
+const analyzer = createPhotoAnalyzer({
+  loadAnalysisJpeg,
+  thresholds: { minWidth: 600 },
+  messages: { too_dark: t('photo.tooDark') },
 });
+assessComparability(a, b, { exposureDiffLimit: 0.3 });
+explainComparabilityReason(reason, { from_library: t('photo.fromLibrary') });
 ```
+
+An unknown or invalid threshold or message throws a `TypeError` rather than
+being ignored.
+
+The pixel measurements are also exported on their own (`measurePixels`,
+`luma`, `sharpness`, `exposure`, `evenness`, `decodeJpeg`, `base64ToBytes`)
+for your own analysis.
 
 ## Privacy
 
-- Photos are processed on the device. Decoding writes a temporary copy to the
-  app's cache directory and deletes it when done.
-- `CaptureMetadata` records the device **model** name, platform and OS version,
-  app version and the picker timestamp. It does not read EXIF, GPS location or
-  any unique device identifier. A model name plus a timestamp stored next to a
-  health photo can still help identify someone, so treat the record as
-  personal data. Pass `device: null` to record none, or pass only the fields
-  you want.
-- Nothing is stored by the package. Where a record or a result is kept is up
-  to your app.
+- Photos are processed on the device. With a `uri`, no copy of the photo is
+  written; the small analysis image is written to the cache folder and deleted
+  before `analyze` returns. With `base64`, a temporary copy is written and
+  deleted the same way.
+- The capture record holds only what your app passes: the device model name,
+  platform, OS and app version, and the picker timestamp. It never reads EXIF,
+  location or a device identifier. A model name plus a timestamp stored next to
+  a health photo can still help identify someone, so treat the record as
+  personal data, and leave `device` out if you don't need it.
+- Nothing is stored by the package.
+
+## Upgrading from 0.x
+
+See [CHANGELOG.md](CHANGELOG.md): the classes became functions, native modules
+are passed in, and the device is no longer read by the package.
 
 ## Contributing
 
