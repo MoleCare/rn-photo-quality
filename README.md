@@ -35,20 +35,13 @@ Works with `@react-native-community/image-editor` 2.x, 3.x and 4.x.
 ## Use
 
 ```js
-import {configure, ImageQualityAnalyzer} from '@molecare/photo-quality';
-
-configure({
-  minWidth: 300,
-  minHeight: 300,
-  unevenLimit: 0.25,
-  messages: {too_dark: 'A little more light, please.'},
-});
+import {ImageQualityAnalyzer} from '@molecare/photo-quality';
 
 const result = await ImageQualityAnalyzer.analyze(pickerAsset);
-// result: {ok, warnings, critical, measured, metrics}
+// result: {ok, warningTypes, warnings, critical, measured, metrics}
 if (!result.ok) {
-  // result.warnings is a list of messages; show them and let the person
-  // retake or keep the photo.
+  // warningTypes are stable codes ('too_dark', 'small_file', ...) to map to
+  // your own text; warnings is the built-in English for the same list.
 }
 if (!result.measured) {
   // The pixels could not be read. That is not a bad photo.
@@ -58,6 +51,42 @@ if (!result.measured) {
 Sharpness is measured and reported, but not used as a warning by default: its
 scale depends on the camera and needs a real capture set to calibrate.
 
+## No state, no global settings
+
+Nothing is kept between calls and there is no global configuration, so two
+parts of an app can use different settings without affecting each other.
+Settings go with the call, over the defaults in `DEFAULT_OPTIONS`:
+
+```js
+import {ImageQualityAnalyzer, PhotoComparability, DEFAULT_OPTIONS} from '@molecare/photo-quality';
+
+const QUALITY = {
+  ...DEFAULT_OPTIONS,
+  minWidth: 600,
+  messages: {too_dark: t('photo.tooDark')},
+};
+
+await ImageQualityAnalyzer.analyze(pickerAsset, QUALITY);
+PhotoComparability.assess(entryA, entryB, {exposureDiffLimit: 0.3});
+PhotoComparability.explain(reason, {from_library: t('photo.fromLibrary')});
+PhotoComparability.summarise(level, {good: t('photo.good')});
+```
+
+An unknown option, or a value that is not a non-negative number, throws a
+`TypeError` rather than being ignored.
+
+`CaptureMetadata.build` takes the device details and capture time from your
+app when you pass them, and only reads them itself when you don't:
+
+```js
+CaptureMetadata.build(asset, {
+  source: CaptureMetadata.SOURCE.CAMERA,
+  pickerOptions,
+  device: null,          // record no device details at all
+  capturedAt: new Date(), // or your own clock
+});
+```
+
 ## Privacy
 
 - Photos are processed on the device. Decoding writes a temporary copy to the
@@ -66,7 +95,10 @@ scale depends on the camera and needs a real capture set to calibrate.
   app version and the picker timestamp. It does not read EXIF, GPS location or
   any unique device identifier. A model name plus a timestamp stored next to a
   health photo can still help identify someone, so treat the record as
-  personal data.
+  personal data. Pass `device: null` to record none, or pass only the fields
+  you want.
+- Nothing is stored by the package. Where a record or a result is kept is up
+  to your app.
 
 ## Contributing
 

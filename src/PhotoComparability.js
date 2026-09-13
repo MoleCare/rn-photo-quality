@@ -1,21 +1,22 @@
 import CaptureMetadata from './CaptureMetadata';
-import {getConfig} from './config';
+import {DEFAULT_OPTIONS, messageFor, resolveOptions} from './defaults';
 
 /**
  * How much two photos of the same subject can be compared.
  *
  * Does not correct anything. Says how much weight the comparison can carry
- * given provenance and measured quality.
+ * given provenance and measured quality. Stateless: limits and messages are
+ * passed per call.
  */
 export default class PhotoComparability {
-  static LEVEL = {
+  static LEVEL = Object.freeze({
     GOOD: 'good',
     FAIR: 'fair',
     POOR: 'poor',
     UNKNOWN: 'unknown',
-  };
+  });
 
-  static REASON = {
+  static REASON = Object.freeze({
     NO_PROVENANCE: 'no_provenance',
     DIFFERENT_DEVICE: 'different_device',
     DIFFERENT_PROCESSING: 'different_processing',
@@ -23,24 +24,23 @@ export default class PhotoComparability {
     EXPOSURE_DIFFERS: 'exposure_differs',
     UNEVEN_LIGHTING: 'uneven_lighting',
     NOT_MEASURED: 'not_measured',
-  };
+  });
 
-  static get EXPOSURE_DIFF_LIMIT() {
-    return getConfig().exposureDiffLimit;
-  }
+  static EXPOSURE_DIFF_LIMIT = DEFAULT_OPTIONS.exposureDiffLimit;
 
-  static get UNEVEN_LIMIT() {
-    return getConfig().unevenLimit;
-  }
+  static UNEVEN_LIMIT = DEFAULT_OPTIONS.unevenLimit;
 
   /**
    * Assess a pair of history entries.
    *
    * @param {Object} a - entry optionally carrying `capture`
    * @param {Object} b - the entry it is being compared against
+   * @param {{exposureDiffLimit?: number, unevenLimit?: number}} [options]
    * @returns {{level: string, reasons: string[], comparable: boolean}}
+   * @throws {TypeError} for an unknown or invalid option
    */
-  static assess(a, b) {
+  static assess(a, b, options) {
+    const opts = resolveOptions(options);
     const capA = a && a.capture;
     const capB = b && b.capture;
     const reasons = [];
@@ -68,7 +68,7 @@ export default class PhotoComparability {
       reasons.push(PhotoComparability.REASON.DIFFERENT_PROCESSING);
     }
 
-    reasons.push(...PhotoComparability._qualityReasons(capA, capB));
+    reasons.push(...PhotoComparability._qualityReasons(capA, capB, opts));
 
     return {
       level: PhotoComparability._level(reasons),
@@ -77,7 +77,7 @@ export default class PhotoComparability {
     };
   }
 
-  static _qualityReasons(capA, capB) {
+  static _qualityReasons(capA, capB, opts = DEFAULT_OPTIONS) {
     const qA = capA.quality;
     const qB = capB.quality;
     const reasons = [];
@@ -95,14 +95,14 @@ export default class PhotoComparability {
       Math.max(lumaA, lumaB) > 0
     ) {
       const diff = Math.abs(lumaA - lumaB) / Math.max(lumaA, lumaB);
-      if (diff > PhotoComparability.EXPOSURE_DIFF_LIMIT) {
+      if (diff > opts.exposureDiffLimit) {
         reasons.push(PhotoComparability.REASON.EXPOSURE_DIFFERS);
       }
     }
 
     const uneven = [qA.evenness, qB.evenness].some(
       value =>
-        typeof value === 'number' && value > PhotoComparability.UNEVEN_LIMIT,
+        typeof value === 'number' && value > opts.unevenLimit,
     );
     if (uneven) {
       reasons.push(PhotoComparability.REASON.UNEVEN_LIGHTING);
@@ -149,12 +149,13 @@ export default class PhotoComparability {
 
   /**
    * Plain explanation for one reason.
-   * Override via configure({ messages: { [reason]: '...' } }).
+   * @param {string} reason - one of REASON
+   * @param {Object<string, string>} [messages] - your own text keyed by reason
    */
-  static explain(reason) {
-    const overrides = getConfig().messages;
-    if (overrides && typeof overrides[reason] === 'string') {
-      return overrides[reason];
+  static explain(reason, messages) {
+    const own = messageFor(messages, reason);
+    if (own !== null) {
+      return own;
     }
 
     switch (reason) {
@@ -177,11 +178,15 @@ export default class PhotoComparability {
     }
   }
 
-  static summarise(level) {
-    const overrides = getConfig().messages;
-    const key = `level_${level}`;
-    if (overrides && typeof overrides[key] === 'string') {
-      return overrides[key];
+  /**
+   * One line describing a level.
+   * @param {string} level - one of LEVEL
+   * @param {Object<string, string>} [messages] - your own text keyed by level
+   */
+  static summarise(level, messages) {
+    const own = messageFor(messages, level);
+    if (own !== null) {
+      return own;
     }
 
     switch (level) {

@@ -22,6 +22,14 @@ good the code is.
 If you are unsure which side of the line a change sits on, open an issue and
 ask before writing the code.
 
+## Stateless by design
+
+The package keeps no state and has no global settings. Every threshold and
+message is an option passed with the call, with its default in
+`src/defaults.js`. Module scope holds frozen constants only, and a test fails
+on any module-level `let` or `var`. Please don't add a `configure()`, a cache
+or a singleton; add an option instead.
+
 ## Getting set up
 
 ```bash

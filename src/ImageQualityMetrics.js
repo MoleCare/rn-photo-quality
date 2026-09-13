@@ -5,25 +5,17 @@
  * arrays and returns numbers, so each one can be checked against images with
  * known properties.
  *
- * ANALYSIS_SIZE is read from package config so callers can change the resample
- * target; changing it invalidates every threshold and every score already
- * recorded.
+ * Stateless: levels are passed per call (defaults in DEFAULT_OPTIONS).
  */
-import {getConfig} from './config';
+import {DEFAULT_OPTIONS, resolveOptions} from './defaults';
 
 export default class ImageQualityMetrics {
-  /** @deprecated Prefer getConfig().analysisSize — kept for call-site compatibility */
-  static get ANALYSIS_SIZE() {
-    return getConfig().analysisSize;
-  }
+  /** The default resample target; pass `analysisSize` to change it per call. */
+  static ANALYSIS_SIZE = DEFAULT_OPTIONS.analysisSize;
 
-  static get DARK_LEVEL() {
-    return getConfig().darkLevel;
-  }
+  static DARK_LEVEL = DEFAULT_OPTIONS.darkLevel;
 
-  static get BRIGHT_LEVEL() {
-    return getConfig().brightLevel;
-  }
+  static BRIGHT_LEVEL = DEFAULT_OPTIONS.brightLevel;
 
   /**
    * Per-channel luma (Rec. 709) for an RGBA buffer.
@@ -84,9 +76,12 @@ export default class ImageQualityMetrics {
   /**
    * Exposure: mean level and the fraction of pixels pinned at either end.
    *
+   * @param {Float64Array} y - luma
+   * @param {{darkLevel?: number, brightLevel?: number}} [options]
    * @returns {{mean: number, darkFraction: number, brightFraction: number}|null}
    */
-  static exposure(y) {
+  static exposure(y, options) {
+    const {darkLevel, brightLevel} = resolveOptions(options);
     if (!y || !y.length) {
       return null;
     }
@@ -94,8 +89,6 @@ export default class ImageQualityMetrics {
     let dark = 0;
     let bright = 0;
     let sum = 0;
-    const darkLevel = ImageQualityMetrics.DARK_LEVEL;
-    const brightLevel = ImageQualityMetrics.BRIGHT_LEVEL;
 
     for (let i = 0; i < y.length; i++) {
       const v = y[i];
@@ -164,9 +157,11 @@ export default class ImageQualityMetrics {
    * Compute every metric for one decoded image.
    *
    * @param {{data: Uint8Array, width: number, height: number}} decoded
+   * @param {Object} [options] - see exposure()
    * @returns {{sharpness: number|null, exposure: Object|null, evenness: number|null, width: number, height: number}|null}
    */
-  static all(decoded) {
+  static all(decoded, options) {
+    const opts = resolveOptions(options);
     if (!decoded || !decoded.data) {
       return null;
     }
@@ -179,7 +174,7 @@ export default class ImageQualityMetrics {
 
     return {
       sharpness: ImageQualityMetrics.sharpness(y, width, height),
-      exposure: ImageQualityMetrics.exposure(y),
+      exposure: ImageQualityMetrics.exposure(y, opts),
       evenness: ImageQualityMetrics.evenness(y, width, height),
       width,
       height,
