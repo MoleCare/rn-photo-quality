@@ -218,7 +218,8 @@ function sample(
   return top * (1 - fy) + bottom * fy;
 }
 
-interface Ring {
+/** @internal Exported for tests; not reachable through the package's `exports` map. */
+export interface Ring {
   /** log-radius rows × angle columns, mean removed, tapered along the radius. */
   readonly data: Float64Array;
   readonly rows: number;
@@ -279,13 +280,15 @@ const wrap = (index: number, n: number): number =>
   index >= n / 2 ? index - n : index;
 
 /** Sub-sample offset of a peak from its two neighbours, by fitting a parabola. */
-function refine(left: number, centre: number, right: number): number {
+/** @internal Exported for tests. */
+export function refine(left: number, centre: number, right: number): number {
   const denominator = left - 2 * centre + right;
   return denominator === 0 ? 0 : (0.5 * (left - right)) / denominator;
 }
 
 /** Shift of `b` relative to `a`, in rows and columns, and the strength of the match. */
-function phaseCorrelate(
+/** @internal Exported for tests. */
+export function phaseCorrelate(
   a: Ring,
   b: Ring
 ): { rows: number; cols: number; confidence: number } {
@@ -376,9 +379,10 @@ export function estimateCameraMotion(
   // Taking the second photo closer by s pushes everything outward: a feature at
   // radius r appears at s·r, one log-radius row step further per log(s).
   const scale = Math.exp(shift.rows * ringBefore.logStep);
-  let rotationDegrees = (shift.cols * 360) / ringBefore.cols;
-  if (rotationDegrees >= 180) rotationDegrees -= 360;
-  if (rotationDegrees < -180) rotationDegrees += 360;
+  // Already in -180..180: phaseCorrelate wraps the column shift into
+  // -cols/2..cols/2, and a parabola fitted at the maximum moves it at most half a
+  // step, so no second wrap is needed.
+  const rotationDegrees = (shift.cols * 360) / ringBefore.cols;
 
   return Object.freeze({
     scale,

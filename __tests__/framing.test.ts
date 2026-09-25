@@ -1,4 +1,5 @@
 import { estimateCameraMotion, type RgbaImage } from '../src';
+import { phaseCorrelate, refine, type Ring } from '../src/framing';
 
 const SIDE = 512;
 
@@ -187,6 +188,18 @@ describe('estimateCameraMotion', () => {
     expect(m?.reliable).toBe(false);
   });
 
+  it.each([170, -170])(
+    'keeps a rotation near a half turn in range: %s degrees',
+    (degrees) => {
+      const after = rgba(withMole(warp(skin, 1, degrees), 40));
+      const m = estimateCameraMotion(photo, after);
+      expect(m?.reliable).toBe(true);
+      expect(m?.rotationDegrees).toBeGreaterThanOrEqual(-180);
+      expect(m?.rotationDegrees).toBeLessThan(180);
+      expect(Math.abs((m?.rotationDegrees ?? 99) - degrees)).toBeLessThan(1.5);
+    }
+  );
+
   it('returns null without pixels, and rejects bad options', () => {
     expect(estimateCameraMotion(null, photo)).toBeNull();
     expect(
@@ -202,5 +215,33 @@ describe('estimateCameraMotion', () => {
     expect(() =>
       estimateCameraMotion(photo, photo, { subjectRadius: 0.5 })
     ).toThrow(TypeError);
+    expect(() =>
+      estimateCameraMotion(photo, photo, { minConfidence: 0 })
+    ).toThrow(TypeError);
+  });
+});
+
+describe('phase correlation internals', () => {
+  it('refines a peak towards its larger neighbour, and not at all on a plateau', () => {
+    expect(refine(0, 1, 0)).toBeCloseTo(0, 10); // a symmetric peak gives -0
+    expect(refine(0.5, 1, 0)).toBeCloseTo(-1 / 6, 10);
+    expect(refine(1, 1, 1)).toBe(0);
+  });
+
+  it('reports no shift and no confidence for two empty rings', () => {
+    // Every frequency bin is zero, so nothing can be normalised and the
+    // surface is flat: the guards must give 0, not NaN.
+    const empty: Ring = {
+      data: new Float64Array(4 * 8),
+      rows: 4,
+      cols: 8,
+      logStep: 0.1,
+      spread: 0,
+    };
+    expect(phaseCorrelate(empty, empty)).toEqual({
+      rows: 0,
+      cols: 0,
+      confidence: 0,
+    });
   });
 });
