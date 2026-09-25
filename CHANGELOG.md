@@ -4,6 +4,18 @@ All notable changes to this package are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Added
+
+- `estimateCameraMotion(before, after, options?)`: how far and how much the
+  camera turned between two photos of the same spot, read from the ring of skin
+  around the subject, never from the subject itself. Returns scale, rotation, a
+  confidence and `reliable`, so a size difference can be checked against the
+  camera before anyone reads it as change. Measures distance and in-plane
+  rotation; not tilt, and not sideways movement. See "Did the camera move?" in
+  the README for the envelope it was checked in.
+
 ## 1.0.0
 
 First public release. Breaking changes from 0.x, which was never published.

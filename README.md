@@ -188,6 +188,41 @@ make a comparison `poor`. A large exposure difference, uneven lighting or an
 unmeasured photo make it `fair`. A missing record makes it `unknown`. The text
 never says whether the subject changed.
 
+### Did the camera move?
+
+A mole that grew looks exactly like a mole photographed from closer. So before
+reading a size difference as change, check the camera:
+
+```ts
+import { estimateCameraMotion } from '@molecare/photo-quality';
+
+const motion = estimateCameraMotion(beforePixels, afterPixels);
+// {scale: 1.12, rotationDegrees: -4.1, confidence: 83, reliable: true}
+```
+
+`scale` above 1 means the second photo was taken closer. When `reliable` is
+false there was too little skin texture, or the photos are of different spots,
+and the estimate should be ignored.
+
+It measures the camera **from the skin around the subject, never from the
+subject**. Measuring from the mole would read real growth as the camera moving
+closer, and explain it away. The centre of the frame is left out, and the ring
+of skin outside it is registered on a log-radius × angle grid.
+
+- **Measures:** distance, as scale, and in-plane rotation.
+- **Does not measure:** tilt, or sideways movement. It assumes the subject is
+  roughly centred in both photos.
+- **Keep the subject inside the middle half of the frame.** On real images,
+  growth of the centre never leaked into the estimate while the grown area
+  stayed within 26% of the frame's side from the centre; at 32.5% it leaked in
+  6 of 60 images.
+
+Checked on 60 real ISIC dermoscopy images with known, synthetic camera moves:
+scale error median 0.05%, rotation error median 0.19°, and no false match
+between different photos. These are exact moves of the same image. Real
+re-photographs add lighting, skin stretch and tilt, and have not been measured
+yet. `scripts/validate-framing.ts` reproduces the check.
+
 ## No state, no global settings
 
 Nothing is kept between calls and there is no global configuration. Settings
