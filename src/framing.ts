@@ -70,13 +70,19 @@ const isPowerOfTwo = (n: number): boolean =>
 function resolve(options: CameraMotionOptions): Required<CameraMotionOptions> {
   const merged = { ...DEFAULT_CAMERA_MOTION, ...options };
   if (!isPowerOfTwo(merged.size) || merged.size < 64 || merged.size > 1024) {
-    throw new TypeError('photo-quality camera motion "size" must be a power of two from 64 to 1024');
+    throw new TypeError(
+      'photo-quality camera motion "size" must be a power of two from 64 to 1024'
+    );
   }
   if (!(merged.subjectRadius > 0 && merged.subjectRadius < 0.35)) {
-    throw new TypeError('photo-quality camera motion "subjectRadius" must be above 0 and below 0.35');
+    throw new TypeError(
+      'photo-quality camera motion "subjectRadius" must be above 0 and below 0.35'
+    );
   }
   if (!(merged.minConfidence > 0)) {
-    throw new TypeError('photo-quality camera motion "minConfidence" must be positive');
+    throw new TypeError(
+      'photo-quality camera motion "minConfidence" must be positive'
+    );
   }
   return merged;
 }
@@ -126,7 +132,13 @@ function fft(re: Float64Array, im: Float64Array, inverse: boolean): void {
 }
 
 /** 2D FFT of a rows × cols grid, row-major, in place. Both dimensions powers of two. */
-function fft2d(re: Float64Array, im: Float64Array, rows: number, cols: number, inverse: boolean): void {
+function fft2d(
+  re: Float64Array,
+  im: Float64Array,
+  rows: number,
+  cols: number,
+  inverse: boolean
+): void {
   const rowRe = new Float64Array(cols);
   const rowIm = new Float64Array(cols);
   for (let r = 0; r < rows; r++) {
@@ -187,15 +199,22 @@ function squareLuma(image: RgbaImage, size: number): Float64Array | null {
 }
 
 /** Bilinear sample of a square grid; the caller keeps (x, y) inside it. */
-function sample(values: Float64Array, size: number, x: number, y: number): number {
+function sample(
+  values: Float64Array,
+  size: number,
+  x: number,
+  y: number
+): number {
   const x0 = Math.floor(x);
   const y0 = Math.floor(y);
   const x1 = Math.min(x0 + 1, size - 1);
   const y1 = Math.min(y0 + 1, size - 1);
   const fx = x - x0;
   const fy = y - y0;
-  const top = at(values, y0 * size + x0) * (1 - fx) + at(values, y0 * size + x1) * fx;
-  const bottom = at(values, y1 * size + x0) * (1 - fx) + at(values, y1 * size + x1) * fx;
+  const top =
+    at(values, y0 * size + x0) * (1 - fx) + at(values, y0 * size + x1) * fx;
+  const bottom =
+    at(values, y1 * size + x0) * (1 - fx) + at(values, y1 * size + x1) * fx;
   return top * (1 - fy) + bottom * fy;
 }
 
@@ -228,7 +247,12 @@ function ring(image: Float64Array, size: number, subjectRadius: number): Ring {
     const radius = inner * Math.exp(r * logStep);
     for (let c = 0; c < cols; c++) {
       const theta = (2 * Math.PI * c) / cols;
-      const v = sample(image, size, centre + radius * Math.cos(theta), centre + radius * Math.sin(theta));
+      const v = sample(
+        image,
+        size,
+        centre + radius * Math.cos(theta),
+        centre + radius * Math.sin(theta)
+      );
       data[r * cols + c] = v;
       sum += v;
     }
@@ -251,7 +275,8 @@ function ring(image: Float64Array, size: number, subjectRadius: number): Ring {
 }
 
 /** Wrap an index into -n/2 .. n/2. */
-const wrap = (index: number, n: number): number => (index >= n / 2 ? index - n : index);
+const wrap = (index: number, n: number): number =>
+  index >= n / 2 ? index - n : index;
 
 /** Sub-sample offset of a peak from its two neighbours, by fitting a parabola. */
 function refine(left: number, centre: number, right: number): number {
@@ -301,8 +326,14 @@ function phaseCorrelate(
     at(re, ((r + rows) % rows) * cols + ((c + cols) % cols));
   const mean = sum / n;
   return {
-    rows: wrap(row + refine(value(row - 1, col), peak, value(row + 1, col)), rows),
-    cols: wrap(col + refine(value(row, col - 1), peak, value(row, col + 1)), cols),
+    rows: wrap(
+      row + refine(value(row - 1, col), peak, value(row + 1, col)),
+      rows
+    ),
+    cols: wrap(
+      col + refine(value(row, col - 1), peak, value(row, col + 1)),
+      cols
+    ),
     confidence: mean > 0 ? peak / mean : 0,
   };
 }
@@ -333,7 +364,12 @@ export function estimateCameraMotion(
   const ringBefore = ring(lumaBefore, size, subjectRadius);
   const ringAfter = ring(lumaAfter, size, subjectRadius);
   if (ringBefore.spread < MIN_SPREAD || ringAfter.spread < MIN_SPREAD) {
-    return Object.freeze({ scale: 1, rotationDegrees: 0, confidence: 0, reliable: false });
+    return Object.freeze({
+      scale: 1,
+      rotationDegrees: 0,
+      confidence: 0,
+      reliable: false,
+    });
   }
   const shift = phaseCorrelate(ringBefore, ringAfter);
 

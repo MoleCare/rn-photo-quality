@@ -41,26 +41,39 @@ function texture(seed: number, side = SIDE): Float64Array {
   };
   const fine = blur(g, 1);
   const coarse = blur(blur(g, 3), 3);
-  g = fine.map((v, i) => 120 + 90 * (v - 0.5) + 160 * ((coarse[i] as number) - 0.5));
+  g = fine.map(
+    (v, i) => 120 + 90 * (v - 0.5) + 160 * ((coarse[i] as number) - 0.5)
+  );
   return g;
 }
 
 /** Draw a dark round "mole" of the given radius at the centre. */
-function withMole(base: Float64Array, radius: number, side = SIDE): Float64Array {
+function withMole(
+  base: Float64Array,
+  radius: number,
+  side = SIDE
+): Float64Array {
   const out = Float64Array.from(base);
   const c = (side - 1) / 2;
   for (let y = 0; y < side; y++) {
     for (let x = 0; x < side; x++) {
       const d = Math.hypot(x - c, y - c);
       if (d < radius) out[y * side + x] = 40;
-      else if (d < radius + 2) out[y * side + x] = 40 + ((d - radius) / 2) * ((out[y * side + x] as number) - 40);
+      else if (d < radius + 2)
+        out[y * side + x] =
+          40 + ((d - radius) / 2) * ((out[y * side + x] as number) - 40);
     }
   }
   return out;
 }
 
 /** Re-photograph a grey image: scale by s and rotate by degrees about the centre. */
-function warp(src: Float64Array, s: number, degrees: number, side = SIDE): Float64Array {
+function warp(
+  src: Float64Array,
+  s: number,
+  degrees: number,
+  side = SIDE
+): Float64Array {
   const out = new Float64Array(side * side);
   const c = (side - 1) / 2;
   const t = (degrees * Math.PI) / 180;
@@ -124,13 +137,16 @@ describe('estimateCameraMotion', () => {
     expect(Math.abs((m?.scale ?? 0) - s) / s).toBeLessThan(0.04);
   });
 
-  it.each([12, -8, 25])('recovers an in-plane rotation of %s degrees', (degrees) => {
-    const after = rgba(withMole(warp(skin, 1, degrees), 40));
-    const m = estimateCameraMotion(photo, after);
-    expect(m?.reliable).toBe(true);
-    expect(Math.abs((m?.rotationDegrees ?? 99) - degrees)).toBeLessThan(1.5);
-    expect(m?.scale).toBeCloseTo(1, 1);
-  });
+  it.each([12, -8, 25])(
+    'recovers an in-plane rotation of %s degrees',
+    (degrees) => {
+      const after = rgba(withMole(warp(skin, 1, degrees), 40));
+      const m = estimateCameraMotion(photo, after);
+      expect(m?.reliable).toBe(true);
+      expect(Math.abs((m?.rotationDegrees ?? 99) - degrees)).toBeLessThan(1.5);
+      expect(m?.scale).toBeCloseTo(1, 1);
+    }
+  );
 
   it('recovers distance and rotation together', () => {
     const after = rgba(withMole(warp(skin, 1.15, -10), 40 * 1.15));
@@ -173,8 +189,18 @@ describe('estimateCameraMotion', () => {
 
   it('returns null without pixels, and rejects bad options', () => {
     expect(estimateCameraMotion(null, photo)).toBeNull();
-    expect(estimateCameraMotion(photo, { data: new Uint8Array(4), width: 10, height: 10 })).toBeNull();
-    expect(() => estimateCameraMotion(photo, photo, { size: 100 })).toThrow(TypeError);
-    expect(() => estimateCameraMotion(photo, photo, { subjectRadius: 0.5 })).toThrow(TypeError);
+    expect(
+      estimateCameraMotion(photo, {
+        data: new Uint8Array(4),
+        width: 10,
+        height: 10,
+      })
+    ).toBeNull();
+    expect(() => estimateCameraMotion(photo, photo, { size: 100 })).toThrow(
+      TypeError
+    );
+    expect(() =>
+      estimateCameraMotion(photo, photo, { subjectRadius: 0.5 })
+    ).toThrow(TypeError);
   });
 });
