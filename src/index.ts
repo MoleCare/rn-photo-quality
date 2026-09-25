@@ -39,6 +39,11 @@ export type {
   ComparabilityLevel,
   ComparabilityReason,
 } from './comparability';
+export {
+  DEFAULT_CAMERA_MOTION,
+  estimateCameraMotion,
+} from './framing';
+export type { CameraMotion, CameraMotionOptions } from './framing';
 export { base64ToBytes, decodeJpeg } from './jpeg';
 export { imageEditorJpegLoader } from './loader';
 export type {
