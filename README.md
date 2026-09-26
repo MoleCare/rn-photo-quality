@@ -112,6 +112,21 @@ const analyzer = createPhotoAnalyzer({
 });
 ```
 
+### Complete examples
+
+[`examples/`](examples/) has copy-paste starting points, typechecked and run in
+CI so they stay in step with the API:
+
+- [`expoAnalyzer.ts`](examples/expoAnalyzer.ts): an analyzer for Expo in one
+  file, with your own warning text.
+- [`CheckPhotoScreen.tsx`](examples/CheckPhotoScreen.tsx): check a photo right
+  after it is picked. Warnings are suggestions; only an unusable photo is
+  blocked.
+- [`photoRecord.ts`](examples/photoRecord.ts): what to store next to each
+  photo so it can be compared later.
+- [`comparePhotos.ts`](examples/comparePhotos.ts): how comparable two photos
+  are, from the camera and light, never the subject.
+
 ### The report
 
 ```ts

@@ -8,6 +8,9 @@ All notable changes to this package are recorded here. The format follows
 
 ### Added
 
+- `examples/`: an Expo analyzer, a check-after-picking screen, the record to
+  store with each photo, and a comparison note from camera and light. CI
+  typechecks and runs them. Not part of the published package.
 - `estimateCameraMotion(before, after, options?)`: how far and how much the
   camera turned between two photos of the same spot, read from the ring of skin
   around the subject, never from the subject itself. Returns scale, rotation, a
