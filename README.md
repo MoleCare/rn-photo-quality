@@ -1,5 +1,10 @@
 # @molecare/photo-quality
 
+[![CI](https://github.com/MoleCare/rn-photo-quality/actions/workflows/ci.yml/badge.svg)](https://github.com/MoleCare/rn-photo-quality/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@molecare/photo-quality)](https://www.npmjs.com/package/@molecare/photo-quality)
+![types included](https://img.shields.io/npm/types/@molecare/photo-quality)
+[![licence](https://img.shields.io/badge/licence-Apache--2.0-blue)](LICENSE)
+
 On-device photo quality checks for React Native and Expo. Before a photo is
 kept, tell the person if it is too dark, washed out or unevenly lit, record how
 it was taken, and grade whether two photos were taken in comparable

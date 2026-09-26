@@ -1,0 +1,29 @@
+name: Feature request
+description: An idea that would make the package more useful.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This package measures photos and never judges what is in them (see
+        CONTRIBUTING.md). Ideas that read the content of a photo, or say whether
+        skin or a mole looks fine or has changed, will be declined. Better
+        measurements, thresholds and capture checks are very welcome.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do that is hard today?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: How you would like it to work, ideally with the options or API you imagine.
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Can you help?
+      options:
+        - label: I would like to open a pull request for this.
