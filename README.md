@@ -243,6 +243,15 @@ between different photos. These are exact moves of the same image. Real
 re-photographs add lighting, skin stretch and tilt, and have not been measured
 yet. `scripts/validate-framing.ts` reproduces the check.
 
+## Every skin tone
+
+The checks judge the light, not the skin. "Too dark" and "too bright" count
+clipped pixels (near black or near white), not how dark the picture is, and
+uneven lighting is measured relative to the photo's own average. So a well-lit
+photo of dark skin is not called too dark, and the same lighting gradient
+scores the same on every skin tone. `__tests__/skinTone.test.ts` checks this
+across ten colours spanning the Monk Skin Tone scale.
+
 ## No state, no global settings
 
 Nothing is kept between calls and there is no global configuration. Settings
