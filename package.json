@@ -79,7 +79,7 @@
     "@types/node": "^22.20.4",
     "@types/react": "^19.3.0",
     "babel-jest": "^30.5.2",
-    "del-cli": "^7.0.0",
+    "del-cli": "^8.0.0",
     "eslint": "^10.11.0",
     "eslint-config-prettier": "^10.1.8",
     "jest": "^30.5.2",
