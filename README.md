@@ -312,6 +312,18 @@ person's skin to an issue or pull request.
 
 Security problems: see [SECURITY.md](SECURITY.md).
 
+## Contributors
+
+Thank you to everyone who has helped @molecare/photo-quality.
+
+<!-- readme: contributors,bots/- -start -->
+<!-- readme: contributors,bots/- -end -->
+
+The list is filled by [Contributors](./.github/workflows/contributors.yml) from
+GitHub commits, bots omitted — never hand-maintained, because a stale list is
+worse than none. [Contributor graph](https://github.com/MoleCare/rn-photo-quality/graphs/contributors) ·
+[good first issue](https://github.com/MoleCare/rn-photo-quality/labels/good%20first%20issue)
+
 ## License
 
 Apache-2.0 © MoleCare LTD
