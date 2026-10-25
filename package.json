@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "On-device photo quality checks for React Native and Expo: exposure clipping, uneven lighting, sharpness, capture provenance and photo-to-photo comparability. TypeScript, no native code of its own.",
   "license": "Apache-2.0",
-  "author": "MoleCare LTD <info@molecare.co.uk> (https://www.molecare.co.uk)",
+  "author": "Aleh Bichel <info@molecare.co.uk> (https://www.molecare.co.uk)",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MoleCare/rn-photo-quality.git"
