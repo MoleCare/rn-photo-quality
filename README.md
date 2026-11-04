@@ -252,6 +252,36 @@ photo of dark skin is not called too dark, and the same lighting gradient
 scores the same on every skin tone. `__tests__/skinTone.test.ts` checks this
 across ten colours spanning the Monk Skin Tone scale.
 
+Those tests use synthetic colours. We also ran the checks at their default
+thresholds over the 10,406 real photos in the
+[SCIN dataset](https://doi.org/10.5281/zenodo.10819503), and the results are
+less tidy. SCIN doesn't record how each photo was lit, so these figures show how
+often a check fires, not whether it was right. Monk ranges below give the results
+from SCIN's US and India annotators.
+
+| Check                               | Lightest group (Monk 1–2) | Darkest group (Monk 7–10) |
+| ----------------------------------- | ------------------------- | ------------------------- |
+| `uneven_lighting` as taken          | 68%                       | 80–82%                    |
+| `too_dark` as taken                 | 6–7%                      | 8%                        |
+| `too_dark`, pixel values cut to 30% | 5%                        | 7–8%                      |
+| `too_bright`, pixel values tripled  | 99%                       | 79–92%                    |
+
+- **`uneven_lighting` fires on most photos, and more on the darkest tones.** The
+  gap is clear with both annotator groups, but not with self-reported Fitzpatrick
+  type. The score can't tell light from what is in the frame, so treat
+  it as a tip rather than a reason to reject a photo, and consider a higher
+  `unevenLimit`. We haven't calibrated one yet.
+- **`too_dark` shows no clear gap between tones, but it misses dim photos.** It
+  counts near-black pixels, so a very dark photo can pass.
+- **The exposure rows are simulated.** Only photos the check hadn't already
+  flagged are counted, and the changes are stronger than most phones produce.
+
+The dataset's people aren't necessarily your users, and few photos fall in the
+darkest group. For SCIN, see Ward et al., _JAMA Network Open_, 2024,
+[10.1001/jamanetworkopen.2024.46615](https://doi.org/10.1001/jamanetworkopen.2024.46615).
+The photos were resized and their exposure altered for this test, and none are
+in this repository.
+
 ## No state, no global settings
 
 Nothing is kept between calls and there is no global configuration. Settings

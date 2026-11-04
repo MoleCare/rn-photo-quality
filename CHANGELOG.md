@@ -11,6 +11,8 @@ All notable changes to this package are recorded here. The format follows
 - Skin-tone tests: every check gives the same result for ten colours spanning
   the Monk Skin Tone scale under the same light; README section "Every skin
   tone".
+- README: how the checks behaved on the real photos of the SCIN dataset, by skin
+  tone, and what that means for `uneven_lighting` and `too_dark`.
 - `examples/`: an Expo analyzer, a check-after-picking screen, the record to
   store with each photo, and a comparison note from camera and light. CI
   typechecks and runs them. Not part of the published package.
